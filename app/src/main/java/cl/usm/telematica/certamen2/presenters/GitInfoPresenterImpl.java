@@ -51,6 +51,8 @@ public class GitInfoPresenterImpl implements GitInfoPresenter{
                     Repository repoObject = new Repository(name, description,updated_at,html_url);
                     repoList.add(repoObject);
                 }
+                mActivity.setTextUser(username);
+                mActivity.onDataReady(repoList);
             }
         }catch (JSONException e){
             e.printStackTrace();

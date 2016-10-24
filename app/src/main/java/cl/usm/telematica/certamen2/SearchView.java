@@ -8,4 +8,5 @@ import android.view.View;
 
 public interface SearchView {
     void onUserObtained(View v);
+    void userNotFound(String username);
 }

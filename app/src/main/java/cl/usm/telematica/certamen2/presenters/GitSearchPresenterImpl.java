@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -21,6 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import cl.usm.telematica.certamen2.DisplayResultsActivity;
 
+import cl.usm.telematica.certamen2.SearchActivity;
 import cl.usm.telematica.certamen2.SearchView;
 import cl.usm.telematica.certamen2.presenters.contract.GitSearchPresenter;
 
@@ -29,10 +31,10 @@ import cl.usm.telematica.certamen2.presenters.contract.GitSearchPresenter;
  */
 
 public class GitSearchPresenterImpl implements GitSearchPresenter {
-    private Activity mActivity;
+    private SearchActivity mActivity;
     private SearchView mView;
 
-    public GitSearchPresenterImpl(Activity activity, SearchView mainView){
+    public GitSearchPresenterImpl(SearchActivity activity, SearchView mainView){
         mActivity = activity;
         mView = mainView;
     }
@@ -51,7 +53,13 @@ public class GitSearchPresenterImpl implements GitSearchPresenter {
     public void searchGit(String username) {
         new AsyncSearch(username).execute();
     }
-    private class AsyncSearch extends AsyncTask<Void,Void,Void> {
+
+    @Override
+    public void onGitNotFound(String username) {
+        mActivity.userNotFound(username);
+    }
+
+    private class AsyncSearch extends AsyncTask<Void,Void,Boolean> {
         ProgressDialog dialog = null;
         private final ReentrantLock lock = new ReentrantLock();
         private final Condition tryagain = lock.newCondition();
@@ -72,7 +80,7 @@ public class GitSearchPresenterImpl implements GitSearchPresenter {
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected Boolean doInBackground(Void... params) {
             try{
                 lock.lockInterruptibly();
             } catch (InterruptedException e){
@@ -100,16 +108,18 @@ public class GitSearchPresenterImpl implements GitSearchPresenter {
 
 
                 }catch (MalformedURLException e){
-                    Toast.makeText(mActivity, "URL inválida", Toast.LENGTH_SHORT).show();
-                }catch (FileNotFoundException e){
-                    Toast.makeText(mActivity, "Error! :(", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(mActivity, "URL inválida", Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
+                    return false;
+                }catch (FileNotFoundException e){
+                    e.printStackTrace();
+                    return false;
                 }
                 catch (Exception e){
                     e.printStackTrace();
                 }
             }while(!finished);
-            return null;
+            return true;
         }
         public void runAgain() {
             // Call this to request data from the server again
@@ -128,10 +138,15 @@ public class GitSearchPresenterImpl implements GitSearchPresenter {
             dialog.dismiss();
             terminateTask();
         }
-        protected void onPostExecute(Void result) {
+        protected void onPostExecute(Boolean result) {
             super.onPostExecute(result);
             dialog.dismiss();
+            if(result){
             onGitFound(server_response,username);
+            } else{
+                onGitNotFound(username);
+            }
+
         }
 
         private String readStream(InputStream in) {

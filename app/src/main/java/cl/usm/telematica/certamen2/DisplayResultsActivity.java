@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cl.usm.telematica.certamen2.model.ClickListener;
@@ -41,6 +42,8 @@ public class DisplayResultsActivity extends AppCompatActivity implements Display
             Toast.makeText(this, "Error trayendo los datos", Toast.LENGTH_LONG).show();
             finish();
         }
+        //repoList = new ArrayList<>();
+
     }
 
     @Override
