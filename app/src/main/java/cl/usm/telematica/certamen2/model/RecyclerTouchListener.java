@@ -1,4 +1,4 @@
-package cl.usm.telematica.certamen2;
+package cl.usm.telematica.certamen2.model;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
