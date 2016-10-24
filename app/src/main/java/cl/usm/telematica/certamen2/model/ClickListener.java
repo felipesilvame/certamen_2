@@ -1,4 +1,4 @@
-package cl.usm.telematica.certamen2;
+package cl.usm.telematica.certamen2.model;
 
 import android.view.View;
 

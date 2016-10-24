@@ -1,17 +1,18 @@
-package cl.usm.telematica.certamen2;
+package cl.usm.telematica.certamen2.model;
 
 /**
- * Created by Pipos on 30-09-2016.
+ * Created by Pipos on 23-10-2016.
  */
-public class Repo {
+
+public class Repository {
     private String name,description,updated_at, url;
-    public Repo(){
+    public Repository(){
         name=null;
         description=null;
         updated_at=null;
         url = null;
     }
-    public Repo(String name, String description, String updated_at, String url){
+    public Repository(String name, String description, String updated_at, String url){
         this.name = name;
         this.description = description;
         this.updated_at = updated_at;

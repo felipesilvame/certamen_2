@@ -1,15 +1,13 @@
-package cl.usm.telematica.certamen2;
+package cl.usm.telematica.certamen2.presenters;
 
-
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.view.View;
-import android.os.AsyncTask;
-import android.util.Log;
-import android.widget.EditText;
+import android.app.Activity;
 import android.app.ProgressDialog;
-import android.widget.Toast;
 import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.util.Log;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -22,26 +20,46 @@ import java.net.URL;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class MainActivity extends AppCompatActivity {
-    public String searchbox = "";
+import cl.usm.telematica.certamen2.DisplayResultsActivity;
+
+import cl.usm.telematica.certamen2.SearchActivity;
+import cl.usm.telematica.certamen2.SearchView;
+import cl.usm.telematica.certamen2.presenters.contract.GitSearchPresenter;
+
+/**
+ * Created by Pipos on 23-10-2016.
+ */
+
+public class GitSearchPresenterImpl implements GitSearchPresenter {
+    private SearchActivity mActivity;
+    private SearchView mView;
+
+    public GitSearchPresenterImpl(SearchActivity activity, SearchView mainView){
+        mActivity = activity;
+        mView = mainView;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-    }
-    public void onSearch(View v){
-        try{
-            EditText git_user = (EditText) findViewById(R.id.editText);
-            searchbox = git_user.getText().toString();
-            new AsyncSearch(searchbox).execute();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
+    public void onGitFound(String data, String username) {
+        Intent i = new Intent(mActivity, DisplayResultsActivity.class);
+        Bundle b = new Bundle();
+        b.putString("info", data);
+        b.putString("username", username);
+        i.putExtras(b);
+        mActivity.startActivity(i);
     }
 
-    private class AsyncSearch extends AsyncTask<Void,Void,Void>{
+    @Override
+    public void searchGit(String username) {
+        new AsyncSearch(username).execute();
+    }
+
+    @Override
+    public void onGitNotFound(String username) {
+        mActivity.userNotFound(username);
+    }
+
+    private class AsyncSearch extends AsyncTask<Void,Void,Boolean> {
         ProgressDialog dialog = null;
         private final ReentrantLock lock = new ReentrantLock();
         private final Condition tryagain = lock.newCondition();
@@ -58,11 +76,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            dialog = ProgressDialog.show(MainActivity.this, "Conectando...", "Buscando usuario...", true, true);
+            dialog = ProgressDialog.show(mActivity, "Conectando...", "Buscando usuario...", true, true);
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected Boolean doInBackground(Void... params) {
             try{
                 lock.lockInterruptibly();
             } catch (InterruptedException e){
@@ -84,23 +102,24 @@ public class MainActivity extends AppCompatActivity {
 
                     urlConnection.connect();
                     int response = urlConnection.getResponseCode();
-                    if(response == HttpURLConnection.HTTP_OK){
-                        server_response = readStream(urlConnection.getInputStream());
-                        Log.v("CatalogClient", server_response);
-                        terminateTask();
-                    }
+                    server_response = readStream(urlConnection.getInputStream());
+                    Log.v("CatalogClient", server_response);
+                    terminateTask();
+
 
                 }catch (MalformedURLException e){
-                    Toast.makeText(MainActivity.this, "URL inválida", Toast.LENGTH_SHORT).show();
-                }catch (FileNotFoundException e){
-                    Toast.makeText(MainActivity.this, "Error! :(", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(mActivity, "URL inválida", Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
+                    return false;
+                }catch (FileNotFoundException e){
+                    e.printStackTrace();
+                    return false;
                 }
                 catch (Exception e){
                     e.printStackTrace();
                 }
             }while(!finished);
-            return null;
+            return true;
         }
         public void runAgain() {
             // Call this to request data from the server again
@@ -119,16 +138,15 @@ public class MainActivity extends AppCompatActivity {
             dialog.dismiss();
             terminateTask();
         }
-        protected void onPostExecute(Void result) {
+        protected void onPostExecute(Boolean result) {
             super.onPostExecute(result);
             dialog.dismiss();
-            Intent i = new Intent(MainActivity.this, ResultsActivity.class);
-            Bundle b = new Bundle();
-            b.putString("info", server_response);
-            b.putString("username", username);
-            i.putExtras(b);
-            startActivity(i);
-            finish();
+            if(result){
+            onGitFound(server_response,username);
+            } else{
+                onGitNotFound(username);
+            }
+
         }
 
         private String readStream(InputStream in) {
